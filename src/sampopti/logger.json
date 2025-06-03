@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "disable_existing_loggers": false,
+  "formatters": {
+    "standard": {
+      "format": "[{asctime}] [{levelname:<7}] [{name}] {message}",
+      "style": "{"
+    }
+  },
+  "handlers": {
+    "console": {
+      "class": "logging.StreamHandler",
+      "formatter": "standard",
+      "stream": "ext://sys.stdout"
+    },
+    "file": {
+      "class": "logging.FileHandler",
+      "formatter": "standard",
+      "filename": "run.log",
+      "mode": "a",
+      "encoding": "utf-8"
+    }
+  },
+  "root": {
+    "level": "WARNING",
+    "handlers": ["console", "file"]
+  }
+}
