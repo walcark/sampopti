@@ -1,10 +1,16 @@
-import numpy as np
-from typing import Literal, Tuple
+############################################################################
+# Loading useful modules                                                   #
+############################################################################
 from scipy.interpolate import CloughTocher2DInterpolator
+from typing import Literal, Tuple
 import pykeops.torch as keops
+import numpy as np
 import torch
 
 
+############################################################################
+# Main interpolation method                                                #
+############################################################################
 def interpolate_to_grid(
     method: Literal["knn", "ct", "idw", "gaussian"],
     x_train: np.ndarray,
@@ -20,7 +26,8 @@ def interpolate_to_grid(
 
     Parameters
     ----------
-    method : Interpolation method: "knn", "ct" (CloughTocher), "idw", or "gaussian".
+    method : Interpolation method: "knn", "ct" (CloughTocher), 
+             "idw", or "gaussian".
     x_train : (N, 2) input coordinates.
     z_train : (N,) input values.
     xlim : (xmin, xmax)
@@ -67,18 +74,22 @@ def interpolate_to_grid(
         return z_grid, X, Y
 
     elif method == "idw":
-        D = ((x_i[:, None, :] - x_j[None, :, :])**2).sum(dim=2).sqrt()
+        x_i_keops = keops.LazyTensor(x_i[:, None, :])  # (M, 1, 2)
+        x_j_keops = keops.LazyTensor(x_j[None, :, :])  # (1, N, 2)
+        D = ((x_i_keops - x_j_keops) ** 2).sum(-1).sqrt()  # (M, N)
         weights = 1.0 / (D + 1e-6)
-        weights /= weights.sum(dim=1, keepdim=True)
-        z_pred = (weights @ z_j).squeeze().numpy().reshape(X.shape)
-        return z_pred, X, Y
+        weights_normalized = weights / weights.sum(dim=1, keepdim=True)
+        z_pred = weights_normalized @ z_j  # (M, 1)
+        return z_pred.squeeze().cpu().numpy().reshape(X.shape), X, Y
 
     elif method == "gaussian":
-        D2 = ((x_i[:, None, :] - x_j[None, :, :])**2).sum(dim=2)
-        weights = torch.exp(-D2 / (2 * gamma**2))
-        weights /= weights.sum(dim=1, keepdim=True)
-        z_pred = (weights @ z_j).squeeze().numpy().reshape(X.shape)
-        return z_pred, X, Y
+        x_i_keops = keops.LazyTensor(x_i[:, None, :])  # (M, 1, 2)
+        x_j_keops = keops.LazyTensor(x_j[None, :, :])  # (1, N, 2)
+        D2 = ((x_i_keops - x_j_keops) ** 2).sum(-1)     # (M, N)
+        weights = (-D2 / (2 * gamma**2)).exp()          # (M, N)
+        weights_normalized = weights / weights.sum(dim=1, keepdim=True)
+        z_pred = weights_normalized @ z_j  # (M, 1)
+        return z_pred.squeeze().cpu().numpy().reshape(X.shape), X, Y
 
     else:
         raise ValueError(f"Unknown interpolation method: {method}")
