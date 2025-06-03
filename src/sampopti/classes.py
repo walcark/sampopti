@@ -1,7 +1,7 @@
 ############################################################################
-# Imports                                                                  #
+# Loading useful modules                                                   #
 ############################################################################
-from typing import Dict, Tuple
+from typing import Dict, Tuple, List 
 from dataclasses import dataclass
 import numpy as np
 import logging
@@ -58,7 +58,8 @@ class SunSat:
 
         x: float  = (self.sat_height * tan_vza) * cos_vaa
         y: float = (self.sat_height * tan_vza) * sin_vaa
-        logger.debug("Computed satellite relative position: (%.2f, %.2f)", x, y)
+        logger.debug("Computed satellite relative position: (%.2f, %.2f)", 
+                     x, y)
 
         return (np.round(x, 4), np.round(y, 4))
     
@@ -68,3 +69,73 @@ class SunSat:
             f"VZA-{self.vza_deg}", f"VAA-{self.vaa_deg}",
             f"H-{self.sat_height}"
         ])
+
+
+
+############################################################################
+# Pixel class (for QuadTree like operations)                               #
+############################################################################
+@dataclass
+class Pixel:
+    """ 
+    Equivalent to a Quadratic Tree without 
+    recursivity operations.
+    """
+    x0: float
+    x1: float
+    y0: float
+    y1: float
+    depth: int
+    min_depth: int
+    max_depth: int
+    threshold: float
+
+    def __post_init__(self):
+        self.mx = 0.5 * (self.x0 + self.x1)
+        self.my = 0.5 * (self.y0 + self.y1)
+
+    @property
+    def get_points(self) -> List[Tuple[float, float]]:
+        """
+        Returns the corners and the center of the pixel.
+        """
+        return [
+            (self.x0, self.y0),
+            (self.x1, self.y0),
+            (self.x0, self.y1),
+            (self.x1, self.y1),
+            (self.mx, self.my)
+        ]
+
+    def check_subdivide(self, values: List[float]) -> bool:
+        """
+        Checks if the pixel needs a subdivision. If the maximum 
+        difference between the evaluation points is over a given
+        threshold, performs the subdivision.
+        """
+        self.values = values
+        if self.depth < self.min_depth:
+            logger.warning("Forced subdivision at depth=%d (min_depth=%d)", 
+                           self.depth, 
+                           self.min_depth)
+            return True
+
+        if self.depth < self.min_depth:
+            return True
+        max_diff = max(values) - min(values)
+        return (self.depth < self.max_depth) and (max_diff > self.threshold)
+
+    def get_subdivision(self) -> List["Pixel"]:
+        """
+        Returns the 4 sub-pixels of the current pixel instance.
+        """
+        args = dict(min_depth=self.min_depth,
+                    max_depth=self.max_depth,
+                    threshold=self.threshold,
+                    depth=self.depth + 1)
+        return [
+            Pixel(self.x0, self.mx, self.y0, self.my, **args),
+            Pixel(self.mx, self.x1, self.y0, self.my, **args),
+            Pixel(self.x0, self.mx, self.my, self.y1, **args),
+            Pixel(self.mx, self.x1, self.my, self.y1, **args)
+        ]
