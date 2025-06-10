@@ -89,7 +89,7 @@ class Pixel:
         self.my = 0.5 * (self.y0 + self.y1)
 
     @property
-    def get_points(self) -> List[Tuple[float, float]]:
+    def points(self) -> List[Tuple[float, float]]:
         """
         Returns the corners and the center of the pixel.
         """
@@ -112,9 +112,6 @@ class Pixel:
             logger.warning("Forced subdivision at depth=%d (min_depth=%d)", 
                            self.depth, 
                            self.min_depth)
-            return True
-
-        if self.depth < self.min_depth:
             return True
         max_diff = max(values) - min(values)
         return (self.depth < self.max_depth) and (max_diff > self.threshold)

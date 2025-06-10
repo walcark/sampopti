@@ -26,7 +26,7 @@ def deduplicate_evaluate_and_remap(
     logger.debug("Evaluating %d pixels", len(pixels))
     unique_coords, remapped = [], []
     coord_to_index = {}
-    coord_groups = [pixel.get_points for pixel in pixels]
+    coord_groups = [pixel.points for pixel in pixels]
 
     for group in coord_groups:
         remapped_group = []
