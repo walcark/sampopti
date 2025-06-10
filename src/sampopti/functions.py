@@ -21,23 +21,21 @@ from sampopti.extlibs import (Smartg,
 ############################################################################
 # Test shapes                                                              #
 ############################################################################
-def gaussian(
-    coords: List[Tuple], 
-    sigma: float
-) -> float:
+def gaussian(coords: List[Tuple], sigma: float) -> List[float]:
     """Simple gaussian function for test purpose."""
-    radius = [np.sqrt(x**2 + y**2) for (x, y) in coords]
-    return [np.exp(-(r / sigma)**2) for r in radius]
+    arr = np.sqrt(np.sum(np.square(coords), axis=1))
+    return np.exp(-(arr/sigma)**2).tolist()
 
 
 def smooth_disk(
-    coords: List[Tuple], 
-    rmax: float, 
+    coords: List[Tuple[float, float]],
+    rmax: float,
     smooth_factor: float = 10.0
-) -> float:
-    """Simple smooth disk function for test purpose."""
-    radius = [np.sqrt(x**2 + y**2) for (x, y) in coords]
-    return [1 / (1 + np.exp(smooth_factor * (r - rmax))) for r in radius]
+) -> np.ndarray:
+    """Simple disk function with a smooth frontier for test purpose."""
+    arr = np.asarray(coords, dtype=float)      
+    r = np.linalg.norm(arr, axis=1) 
+    return 1.0 / (1.0 + np.exp(smooth_factor * (r - rmax)))
 
 
 ############################################################################

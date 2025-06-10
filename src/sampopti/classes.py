@@ -36,7 +36,7 @@ class SunSat:
     def sat_sensor(self) -> Sensor:
         return self._sensor(self.sat_height, self.vza_deg, self.vaa_deg)
 
-    def _le(self, za: float, aa: float) -> Dict[str: float]:
+    def _le(self, za: float, aa: float) -> Dict[str, float]:
         return {"th_deg": za, "phi_deg": aa, "zip": True}
 
     def _sensor(self, height: float, za: float, aa: float) -> Sensor:
