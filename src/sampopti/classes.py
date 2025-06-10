@@ -30,21 +30,19 @@ class SunSat:
     
     @property
     def sun_sensor(self) -> Sensor:
-        return Sensor(
-            POSZ=self.sat_height, 
-            THDEG=180.0 - self.sza_deg, 
-            PHDEG=self.saa_deg, 
-            LOC='ATMOS'
-        )
+        return self.get_sensor(self.sat_height, self.sza_deg, self.saa_deg)
 
     @property
     def sat_sensor(self) -> Sensor:
+        return self.get_sensor(self.sat_height, self.vza_deg, self.vaa_deg)
+
+    def get_sensor(self, height: float, za_deg: float, aa_deg: float) -> Sensor:
         return Sensor(
-            POSZ=self.sat_height, 
-            THDEG=180.0 - self.vza_deg, 
-            PHDEG=self.vaa_deg, 
+            POSZ=height, 
+            THDEG=180.0 - za_deg, 
+            PHDEG=aa_deg, 
             LOC='ATMOS'
-        )                      
+        )                   
     
     @property
     def satellite_relative_position(self) -> Tuple[float, float]:
