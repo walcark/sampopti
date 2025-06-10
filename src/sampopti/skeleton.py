@@ -1,28 +1,16 @@
+import matplotlib.pyplot as plt
+import numpy as np
 import argparse
 import logging
 import sys
-import numpy as np
-import matplotlib.pyplot as plt
-import rasterio
-from rasterio.transform import from_origin
-from scipy.stats import binned_statistic
 
+from sampopti.extlibs import AtmAFGL, AerOPAC, LambSurface, Albedo_cst, Environment
+from sampopti.functions import gaussian, rho_toa, smooth_disk
+from sampopti.optimal import recursive_subdivision, Pixel
+from sampopti.plotter import show_quadtree_pixels
 from sampopti.logging_utils import setup_logging
 from sampopti.classes import SunSat
-from sampopti import __version__
-from sampopti.interpolate import interpolate_to_grid
-from sampopti.optimal import (recursive_subdivision,
-                              show_quadtree_pixels,
-                              pixels_to_centers,
-                              Pixel)
-from sampopti.extlibs import (AtmAFGL, 
-                              AerOPAC, 
-                              LambSurface, 
-                              Albedo_cst, 
-                              Environment)
-from sampopti.functions import (gaussian, 
-                                rho_toa, 
-                                smooth_disk)
+
 
 logger = logging.getLogger(__name__)
 
@@ -109,51 +97,9 @@ def main(args):
     root.max_depth = max_depth
 
     pixels = recursive_subdivision([root], [], func, cache=cache, **func_kwargs)
-    loc, val = pixels_to_centers(pixels)
+    show_quadtree_pixels(pixels)
+    plt.show()
 
-    if args.interpolate:
-        z_grid, X, Y = interpolate_to_grid(method=args.interp_method,
-                                           x_train=loc,
-                                           z_train=val,
-                                           xlim=(loc[:, 0].min(), loc[:, 0].max()),
-                                           ylim=(loc[:, 1].min(), loc[:, 1].max()),
-                                           resolution=args.grid_res,
-                                           k=args.k_neighbors)
-
-        if args.save_grid:
-            transform = from_origin(X.min(), Y.max(), args.grid_res, args.grid_res)
-            with rasterio.open(
-                args.save_grid,
-                "w",
-                driver="GTiff",
-                height=z_grid.shape[0],
-                width=z_grid.shape[1],
-                count=1,
-                dtype=z_grid.dtype,
-                crs="EPSG:4326",
-                transform=transform,
-            ) as dst:
-                dst.write(z_grid, 1)
-            logger.info("Saved interpolated grid to %s", args.save_grid)
-
-        if args.show:
-            plt.imshow(z_grid, extent=(X.min(), X.max(), Y.min(), Y.max()), origin='lower', cmap='viridis')
-            plt.colorbar()
-            plt.title(f"Interpolation: {args.interp_method}")
-            plt.show()
-
-        R = np.sqrt(X.ravel()**2 + Y.ravel()**2)
-        Z_flat = z_grid.ravel()
-        r_bins = np.linspace(R.min(), R.max(), 100)
-        z_mean, _, _ = binned_statistic(R, Z_flat, statistic='mean', bins=r_bins)
-        r_centers = 0.5 * (r_bins[1:] + r_bins[:-1])
-
-        plt.plot(r_centers, z_mean)
-        plt.xlabel("Radial distance")
-        plt.ylabel("Mean interpolated value")
-        plt.title("Radial profile")
-        plt.grid(True)
-        plt.show()
 
 def run():
     main(parse_args(sys.argv[1:]))
