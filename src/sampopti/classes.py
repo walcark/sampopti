@@ -22,27 +22,25 @@ class SunSat:
 
     @property
     def sun_le(self) -> Dict[str, float]:
-        return {"th_deg": self.sza_deg, "phi_deg": self.saa_deg, "zip": True}
+        return self._le(self.sza_deg, self.saa_deg)
     
     @property
     def sat_le(self) -> Dict[str, float]:
-        return {"th_deg": self.vza_deg, "phi_deg": self.vaa_deg, "zip": True}
+        return self._le(self.vza_deg, self.vaa_deg)
     
     @property
     def sun_sensor(self) -> Sensor:
-        return self.get_sensor(self.sat_height, self.sza_deg, self.saa_deg)
+        return self._sensor(self.sat_height, self.sza_deg, self.saa_deg)
 
     @property
     def sat_sensor(self) -> Sensor:
-        return self.get_sensor(self.sat_height, self.vza_deg, self.vaa_deg)
+        return self._sensor(self.sat_height, self.vza_deg, self.vaa_deg)
 
-    def get_sensor(self, height: float, za_deg: float, aa_deg: float) -> Sensor:
-        return Sensor(
-            POSZ=height, 
-            THDEG=180.0 - za_deg, 
-            PHDEG=aa_deg, 
-            LOC='ATMOS'
-        )                   
+    def _le(self, za: float, aa: float) -> Dict[str: float]:
+        return {"th_deg": za, "phi_deg": aa, "zip": True}
+
+    def _sensor(self, height: float, za: float, aa: float) -> Sensor:
+        return Sensor(POSZ=height, THDEG=180.0 - za, PHDEG=aa, LOC='ATMOS')                   
     
     @property
     def satellite_relative_position(self) -> Tuple[float, float]:
@@ -53,12 +51,10 @@ class SunSat:
         tan_vza: float = np.tan(np.radians(self.vza_deg))
         cos_vaa: float = np.cos(np.radians(180 - self.vaa_deg))
         sin_vaa: float = np.sin(np.radians(180 - self.vaa_deg))
-
         x: float  = (self.sat_height * tan_vza) * cos_vaa
         y: float = (self.sat_height * tan_vza) * sin_vaa
         logger.debug("Computed satellite relative position: (%.2f, %.2f)", 
                      x, y)
-
         return (np.round(x, 4), np.round(y, 4))
     
     def __str__(self) -> str:
