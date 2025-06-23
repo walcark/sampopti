@@ -139,21 +139,21 @@ def rho_coupling(
     """
     logger.debug("Calling rho_coupling with %d points", len(points))
 
-    # 1. Keeping only unique points
-    r = np.sqrt(np.array([x**2 + y**2 for (x, y) in points]))
-    r_unique = r[np.unique(np.round(r, 0), return_index=True)[1]]
-    r_unique = np.append(0.0, r_unique)
+    # TODO: 1. Keeping only unique points
+    #r = np.sqrt(np.array([x**2 + y**2 for (x, y) in points]))
+    #r_unique = r[np.unique(np.round(r, 3), return_index=True)[1]]
+    #r_unique = np.append(0.0, r_unique)
 
     # 2. Simulation on single coordinate
     lamb_emit_boa: List[Sensor] = [
         Sensor(
-            POSX=0.0, 
-            POSY=py, 
+            POSX=pos_x, 
+            POSY=pos_y, 
             POSZ=0.0,
             FOV=90.,
             TYPE=1,
             LOC='ATMOS'
-        ) for py in r_unique
+        ) for (pos_x, pos_y) in points
     ]
 
     mlut: MLUT = Smartg(back=True).run(
@@ -163,17 +163,18 @@ def rho_coupling(
         env=environment,
         sensor=lamb_emit_boa,
         le=sunsat.sun_le,
-        NBPHOTONS=len(r_unique) * nb_photons,
+        NBPHOTONS=len(points) * nb_photons,
         NF=nb_angles,
     )
     e_coupling: np.ndarray = mlut["I_up (TOA)"][:, 0]
 
-    # 3. Reinterpolating in full-coordinates
-    interp_func = interp1d(r_unique, 
-                           e_coupling, 
-                           kind='linear', 
-                           fill_value="extrapolate")
-    e_coupling = interp_func(r)
+    # TODO: 3. Reinterpolating in full-coordinates
+    #interp_func = interp1d(r_unique, 
+    #                       e_coupling, 
+    #                       kind='linear', 
+    #                       fill_value="extrapolate")
+    #e_coupling = interp_func(r)
+    
     logger.info("Finished rho_coupling computation")
     return e_coupling
 

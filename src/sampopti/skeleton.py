@@ -5,7 +5,7 @@ import logging
 import sys
 
 from sampopti.extlibs import AtmAFGL, AerOPAC, LambSurface, Albedo_cst, Environment
-from sampopti.functions import gaussian, rho_toa, smooth_disk
+from sampopti.functions import gaussian, rho_toa, smooth_disk, rho_coupling
 from sampopti.optimal import recursive_subdivision, Pixel
 from sampopti.plotter import show_quadtree_pixels
 from sampopti.logging_utils import setup_logging
@@ -21,7 +21,7 @@ __license__ = "MIT"
 def parse_args(args):
     parser = argparse.ArgumentParser(description="Run adaptive subdivision with atmospheric or test functions.")
 
-    parser.add_argument("--func", choices=["gaussian", "smooth_disk", "rho_toa"],
+    parser.add_argument("--func", choices=["gaussian", "smooth_disk", "rho_toa", "rho_coupling"],
                         default="gaussian", help="Function to evaluate")
     parser.add_argument("--extent", type=float, default=100.0, help="Half size of the domain (default: 100.0)")
     parser.add_argument("--low-res", type=float, default=1.0, help="Minimal pixel resolution (default: 1.0)")
@@ -73,17 +73,19 @@ def main(args):
     if args.func == "gaussian":
         func = gaussian
         func_kwargs = {"sigma": 40.0}
+
     elif args.func == "smooth_disk":
         func = smooth_disk
         func_kwargs = {"rmax": 50.0, "smooth_factor": 10.0}
-    elif args.func == "rho_toa":
+
+    elif args.func == "rho_toa" or args.func == "rho_coupling":
         sunsat = SunSat(args.sza, args.saa, args.vza, args.vaa, args.height)
         atm = AtmAFGL(args.atm, [AerOPAC(args.aerosol_type, args.aod, args.ref_wl)],
                       grid=np.linspace(100., 0., 101),
                       pfgrid=np.array([100., 20., 10., 9., 8., 7., 6., 5., 4., 3., 2., 1., 0.]))
         surface = LambSurface(ALB=Albedo_cst(args.albedo))
         environment = Environment(ENV=args.env, ENV_SIZE=args.env_size, X0=args.x0, Y0=args.y0)
-        func = rho_toa
+        func = rho_toa if args.func == "rho_toa" else rho_coupling
         func_kwargs = dict(wavelength=args.wavelength,
                            nb_photons=args.nb_photons,
                            sunsat=sunsat,
